@@ -82,6 +82,7 @@ userSchema.methods.isSubscriptionActive = function () {
   return new Date() < this.subscriptionEndDate;
 };
 
-const User = mongoose.model("User", userSchema);
+// prevent model recompilation when importing file multiple times
+const User = mongoose.models.User || mongoose.model("User", userSchema);
 
 export default User;
