@@ -1,0 +1,191 @@
+import Video from '../models/Video.js';
+import apiResponse from "../utils/apiResponse.js";
+import apiError from '../utils/apiError.js';
+import asyncHandler from '../utils/asyncHandler.js';
+import cloudinary from '../config/cloudinary.js';
+
+const getAllMovies = asyncHandler(async (req, res) => {
+    const movies = await Video.find({ category: "movie" })
+        .sort({ views: -1 }) // Sort by views in descending order
+        .populate('uploadedBy', 'name');
+
+    return res
+        .status(200)
+        .json(new apiResponse(200, movies, "Movies retrieved successfully"));
+});
+const getProvinceVideos = asyncHandler(async (req, res) => {
+
+    const { provinceId, category } = req.params;
+
+    const videos = await Video.find({
+        province: provinceId,
+        category: category
+    })
+        .sort({ views: -1 }) // most popular first
+        .populate("province", "name")
+        .populate("uploadedBy", "name")
+        .limit(10);
+
+    return res.status(200).json(
+        new apiResponse(200, videos, "Province videos fetched successfully")
+    );
+});
+
+const getVideoById = asyncHandler(async (req, res) => {
+    const { videoId } = req.params;
+
+    if (!videoId) {
+        throw new apiError(400, "Video ID is required");
+    }
+
+    const video = await Video.findById(videoId)
+        .populate('province', 'name')
+        .populate('uploadedBy', 'name');
+
+    if (!video) {
+        throw new apiError(404, "Video not found");
+    }
+
+    return res
+        .status(200)
+        .json(new apiResponse(200, video, "Video retrieved successfully"));
+});
+
+const uploadVideo = asyncHandler(async (req, res) => {
+    const {
+        title,
+        description,
+        genre,
+        language,
+        releaseYear,
+        duration,
+        category,
+        province
+    } = req.body;
+
+    // Validate required fields
+    if (!title || !description || !genre || !language || !releaseYear || !duration || !category) {
+        throw new apiError(400, "All fields are required");
+    }
+
+    // Check if files were uploaded
+    if (!req.files || !req.files.video || !req.files.thumbnail) {
+        throw new apiError(400, "Both video and thumbnail files are required");
+    }
+
+    const videoUrl = req.files.video[0].path; // Cloudinary secure_url for video
+    const thumbnailUrl = req.files.thumbnail[0].path; // Cloudinary secure_url for thumbnail
+
+    // Create video document
+    const video = await Video.create({
+        title,
+        description,
+        genre,
+        language,
+        releaseYear: parseInt(releaseYear),
+        videoUrl,
+        thumbnailUrl,
+        duration: parseInt(duration),
+        category,
+        province: province || null,
+        uploadedBy: req.user._id,
+    });
+
+    return res
+        .status(201)
+        .json(new apiResponse(201, video, "Video uploaded successfully"));
+});
+
+const updateVideo = asyncHandler(async (req, res) => {
+    const { videoId } = req.params;
+
+    if (!videoId) {
+        throw new apiError(400, "Video ID is required");
+    }
+
+    const video = await Video.findById(videoId);
+    if (!video) {
+        throw new apiError(404, "Video not found");
+    }
+
+    // allow updating any of the basic fields
+    const updatableFields = [
+        'title',
+        'description',
+        'genre',
+        'language',
+        'releaseYear',
+        'duration',
+        'category',
+        'province'
+    ];
+
+    updatableFields.forEach((field) => {
+        if (req.body[field] !== undefined) {
+            // parse integers where appropriate
+            if (field === 'releaseYear' || field === 'duration') {
+                video[field] = parseInt(req.body[field]);
+            } else {
+                video[field] = req.body[field];
+            }
+        }
+    });
+
+    // handle new upload URLs if files were provided
+    if (req.files) {
+        if (req.files.video && req.files.video[0]) {
+            video.videoUrl = req.files.video[0].path;
+        }
+        if (req.files.thumbnail && req.files.thumbnail[0]) {
+            video.thumbnailUrl = req.files.thumbnail[0].path;
+        }
+    }
+
+    await video.save();
+
+    return res
+        .status(200)
+        .json(new apiResponse(200, video, "Video updated successfully"));
+});
+
+const deleteVideo = asyncHandler(async (req, res) => {
+    const { videoId } = req.params;
+
+    if (!videoId) {
+        throw new apiError(400, "Video ID is required");
+    }
+
+    const video = await Video.findById(videoId);
+    if (!video) {
+        throw new apiError(404, "Video not found");
+    }
+
+    // Extract public IDs from Cloudinary URLs for deletion
+    const videoPublicId = video.videoUrl.split('/').pop().split('.')[0];
+    const thumbnailPublicId = video.thumbnailUrl.split('/').pop().split('.')[0];
+
+    // Delete files from Cloudinary
+    try {
+        // Delete video file
+        if (videoPublicId) {
+            await cloudinary.uploader.destroy(`ott/videos/${videoPublicId}`, { resource_type: 'video' });
+        }
+
+        // Delete thumbnail file
+        if (thumbnailPublicId) {
+            await cloudinary.uploader.destroy(`ott/thumbnails/${thumbnailPublicId}`);
+        }
+    } catch (cloudinaryError) {
+        console.error('Error deleting files from Cloudinary:', cloudinaryError);
+        // Continue with database deletion even if Cloudinary deletion fails
+    }
+
+    // Delete video document from database
+    await Video.findByIdAndDelete(videoId);
+
+    return res
+        .status(200)
+        .json(new apiResponse(200, null, "Video deleted successfully"));
+});
+
+export { getAllMovies, getVideoById, uploadVideo, updateVideo, deleteVideo, getProvinceVideos }; 
