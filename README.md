@@ -50,6 +50,59 @@ backend/
 
 ### Video Management
 
+* Upload videos and thumbnails to Cloudinary
+* Get videos by category, province
+* Video streaming with view tracking
+* Admin-only video upload functionality
+
+---
+
+## Cloudinary Setup
+
+This project uses Cloudinary for video and image storage.
+
+### Environment Variables
+
+Add the following to your `.env` file:
+
+```env
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+```
+
+### File Upload Structure
+
+- **Videos**: Uploaded to `ott/videos` folder with `resource_type: "video"`
+- **Thumbnails**: Uploaded to `ott/thumbnails` folder
+- **Supported formats**:
+  - Videos: mp4, avi, mov, mkv, webm
+  - Images: jpg, jpeg, png, webp
+
+### Upload API
+
+**Endpoint**: `POST /api/video/upload`
+
+**Authentication**: Required (Admin only)
+
+**Content-Type**: `multipart/form-data`
+
+**Body Parameters**:
+- `video` (file): Video file
+- `thumbnail` (file): Thumbnail image
+- `title` (string): Video title
+- `description` (string): Video description
+- `genre` (string): Video genre
+- `language` (string): Video language
+- `releaseYear` (number): Release year
+- `duration` (number): Duration in minutes
+- `category` (string): movie, documentary, or cultural
+- `province` (ObjectId, optional): Province ID
+
+**Response**: Returns uploaded video data with Cloudinary URLs
+
+### Video Management
+
 * Upload videos (Cloudinary)
 * Province-based video filtering
 * Popular videos per province
