@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getAllMovies, getVideoById, uploadVideo, updateVideo, deleteVideo, getProvinceVideos } from "../controllers/video.controller.js";
+import { getAllMovies, getVideoById, uploadVideo, updateVideo, deleteVideo, getProvinceVideos, getAllProvinces } from "../controllers/video.controller.js";
 import { uploadVideoAndThumbnail } from "../middleware/multer.middleware.js";
 import verifyJWT from "../middleware/verifyJwt.middleware.js";
 import roleVerify from "../middleware/role.middleware.js";
@@ -7,8 +7,9 @@ import roleVerify from "../middleware/role.middleware.js";
 const videoRouter = Router();
 
 videoRouter.get("/movies", getAllMovies);
-videoRouter.get("/:videoId", getVideoById);
+videoRouter.get("/provinces", getAllProvinces);
 videoRouter.get("/province/:provinceId/:category", getProvinceVideos);
+videoRouter.get("/:videoId", getVideoById);
 videoRouter.post("/upload",
     verifyJWT,
     roleVerify,
