@@ -44,8 +44,8 @@ export const uploadThumbnail = multer({
 });
 
 // Combined upload for both video and thumbnail
-export const uploadVideoAndThumbnail = multer({
-  storage: (req, file, cb) => {
+class CombinedStorage {
+  _handleFile(req, file, cb) {
     if (file.fieldname === 'video') {
       videoStorage._handleFile(req, file, cb);
     } else if (file.fieldname === 'thumbnail') {
@@ -53,8 +53,17 @@ export const uploadVideoAndThumbnail = multer({
     } else {
       cb(new Error('Invalid field name'));
     }
-  },
+  }
+
+  _removeFile(req, file, cb) {
+    // Implement if needed, but Cloudinary handles this
+    cb(null);
+  }
+}
+
+export const uploadVideoAndThumbnail = multer({
+  storage: new CombinedStorage(),
   limits: {
-    fileSize: 100 * 1024 * 1024, // 100MB default, but we'll handle per field
+    fileSize: 100 * 1024 * 1024, // 100MB default
   },
 });
