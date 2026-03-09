@@ -3,6 +3,7 @@ import apiResponse from "../utils/apiResponse.js";
 import apiError from '../utils/apiError.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import cloudinary from '../config/cloudinary.js';
+import Province from '../models/Province.js';
 
 const getAllMovies = asyncHandler(async (req, res) => {
     const movies = await Video.find({ category: "movie" })
@@ -76,6 +77,15 @@ const uploadVideo = asyncHandler(async (req, res) => {
     const videoUrl = req.files.video[0].path; // Cloudinary secure_url for video
     const thumbnailUrl = req.files.thumbnail[0].path; // Cloudinary secure_url for thumbnail
 
+    // Find province by name and get its ObjectId (or null if not found)
+    let provinceId = null;
+    if (province) {
+        const provinceExists = await Province.findOne({ name: province });
+        if (provinceExists) {
+            provinceId = provinceExists._id;
+        }
+    }
+
     // Create video document
     const video = await Video.create({
         title,
@@ -87,7 +97,7 @@ const uploadVideo = asyncHandler(async (req, res) => {
         thumbnailUrl,
         duration: parseInt(duration),
         category,
-        province: province || null,
+        province: provinceId,
         uploadedBy: req.user._id,
     });
 
@@ -120,16 +130,24 @@ const updateVideo = asyncHandler(async (req, res) => {
         'province'
     ];
 
-    updatableFields.forEach((field) => {
+    for (const field of updatableFields) {
         if (req.body[field] !== undefined) {
             // parse integers where appropriate
             if (field === 'releaseYear' || field === 'duration') {
                 video[field] = parseInt(req.body[field]);
+            } else if (field === 'province') {
+                // Handle province: convert province name to ObjectId
+                if (req.body[field]) {
+                    const provinceExists = await Province.findOne({ name: req.body[field] });
+                    video[field] = provinceExists ? provinceExists._id : null;
+                } else {
+                    video[field] = null;
+                }
             } else {
                 video[field] = req.body[field];
             }
         }
-    });
+    }
 
     // handle new upload URLs if files were provided
     if (req.files) {
