@@ -32,6 +32,15 @@ const getProvinceVideos = asyncHandler(async (req, res) => {
     );
 });
 
+// GET /api/provinces
+// Fetch and return all provinces, sorted alphabetically by name
+const getAllProvinces = asyncHandler(async (req, res) => {
+    const provinces = await Province.find({}).sort({ name: 1 });
+    return res
+        .status(200)
+        .json(new apiResponse(200, provinces, "Provinces retrieved successfully"));
+});
+
 const getVideoById = asyncHandler(async (req, res) => {
     const { videoId } = req.params;
 
@@ -206,4 +215,4 @@ const deleteVideo = asyncHandler(async (req, res) => {
         .json(new apiResponse(200, null, "Video deleted successfully"));
 });
 
-export { getAllMovies, getVideoById, uploadVideo, updateVideo, deleteVideo, getProvinceVideos }; 
+export { getAllMovies, getVideoById, uploadVideo, updateVideo, deleteVideo, getProvinceVideos, getAllProvinces }; 
