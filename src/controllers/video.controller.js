@@ -5,6 +5,8 @@ import asyncHandler from '../utils/asyncHandler.js';
 import cloudinary from '../config/cloudinary.js';
 import Province from '../models/Province.js';
 
+// GET /api/video/movies
+// Return all videos of category "movie" ordered by views
 const getAllMovies = asyncHandler(async (req, res) => {
     const movies = await Video.find({ category: "movie" })
         .sort({ views: -1 }) // Sort by views in descending order
@@ -13,6 +15,62 @@ const getAllMovies = asyncHandler(async (req, res) => {
     return res
         .status(200)
         .json(new apiResponse(200, movies, "Movies retrieved successfully"));
+});
+
+// GET /api/video
+// Fetch all videos regardless of category
+const getAllVideos = asyncHandler(async (req, res) => {
+    const videos = await Video.find({})
+        .sort({ views: -1 })
+        .populate('province', 'name')
+        .populate('uploadedBy', 'name');
+
+    return res
+        .status(200)
+        .json(new apiResponse(200, videos, "Videos retrieved successfully"));
+});
+
+// GET /api/video/nepali-movies
+// Retrieve movies that belong to any province (province not null)
+const getNepaliMovies = asyncHandler(async (req, res) => {
+    const movies = await Video.find({
+        category: "movie",
+        province: { $ne: null }
+    })
+        .sort({ views: -1 })
+        .populate('province', 'name')
+        .populate('uploadedBy', 'name');
+
+    return res
+        .status(200)
+        .json(new apiResponse(200, movies, "Nepali movies retrieved successfully"));
+});
+
+// GET /api/video/search
+// Search only in movies (exclude documentaries and cultural)
+// query parameter: q (search term)
+const searchMovies = asyncHandler(async (req, res) => {
+    const { q } = req.query;
+    if (!q) {
+        throw new apiError(400, "Search query parameter 'q' is required");
+    }
+
+    const regex = new RegExp(q, 'i');
+    const movies = await Video.find({
+        category: "movie",
+        $or: [
+            { title: regex },
+            { description: regex },
+            { genre: regex }
+        ]
+    })
+        .sort({ views: -1 })
+        .populate('uploadedBy', 'name')
+        .populate('province', 'name');
+
+    return res
+        .status(200)
+        .json(new apiResponse(200, movies, "Search results retrieved successfully"));
 });
 const getProvinceVideos = asyncHandler(async (req, res) => {
 
@@ -215,4 +273,15 @@ const deleteVideo = asyncHandler(async (req, res) => {
         .json(new apiResponse(200, null, "Video deleted successfully"));
 });
 
-export { getAllMovies, getVideoById, uploadVideo, updateVideo, deleteVideo, getProvinceVideos, getAllProvinces }; 
+export {
+    getAllVideos,
+    getAllMovies,
+    getNepaliMovies,
+    searchMovies,
+    getVideoById,
+    uploadVideo,
+    updateVideo,
+    deleteVideo,
+    getProvinceVideos,
+    getAllProvinces
+}; 
