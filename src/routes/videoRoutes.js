@@ -1,13 +1,16 @@
 import { Router } from "express";
-import { getAllMovies, getVideoById, uploadVideo, updateVideo, deleteVideo, getProvinceVideos, getAllProvinces } from "../controllers/video.controller.js";
+import { getAllVideos, getAllMovies, getVideoById, uploadVideo, updateVideo, deleteVideo, getProvinceVideos, getAllProvinces, getNepaliMovies, searchMovies } from "../controllers/video.controller.js";
 import { uploadVideoAndThumbnail } from "../middleware/multer.middleware.js";
 import verifyJWT from "../middleware/verifyJwt.middleware.js";
 import roleVerify from "../middleware/role.middleware.js";
 
 const videoRouter = Router();
 
+videoRouter.get("/", getAllVideos); // list all videos first to avoid conflict with id route
 videoRouter.get("/movies", getAllMovies);
 videoRouter.get("/provinces", getAllProvinces);
+videoRouter.get("/nepali-movies", getNepaliMovies);
+videoRouter.get("/search", searchMovies);
 videoRouter.get("/province/:provinceId/:category", getProvinceVideos);
 videoRouter.get("/:videoId", getVideoById);
 videoRouter.post("/upload",
